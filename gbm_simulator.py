@@ -1,14 +1,3 @@
-"""Geometric Brownian Motion (GBM) asset price path simulator.
-
-Provides a fully vectorized, production-grade engine for generating
-Monte Carlo price paths and computing terminal risk statistics.
-
-Mathematical formulation
-------------------------
-    S_t = S_0 * exp((mu - 0.5 * sigma^2) * t + sigma * W_t)
-
-where W_t is a standard Wiener process.
-"""
 
 from __future__ import annotations
 
@@ -20,31 +9,6 @@ from numpy.typing import NDArray
 
 @dataclass(frozen=True)
 class RiskStatistics:
-    """Terminal-horizon risk summary across all simulated paths.
-
-    Attributes
-    ----------
-    mean : float
-        Mean terminal price.
-    std : float
-        Standard deviation of terminal prices.
-    var_95 : float
-        95 % Value at Risk (loss relative to S_0).
-    var_99 : float
-        99 % Value at Risk (loss relative to S_0).
-    es_95 : float
-        95 % Expected Shortfall (Conditional VaR).
-    es_99 : float
-        99 % Expected Shortfall (Conditional VaR).
-    median : float
-        Median terminal price.
-    min : float
-        Minimum terminal price observed.
-    max : float
-        Maximum terminal price observed.
-    paths_below_s0 : float
-        Fraction of paths finishing below the initial price.
-    """
 
     mean: float
     std: float
@@ -59,33 +23,7 @@ class RiskStatistics:
 
 
 class GBMSimulator:
-    """Vectorized Geometric Brownian Motion simulator.
-
-    Parameters
-    ----------
-    s0 : float
-        Initial asset price (must be > 0).
-    mu : float
-        Annualized drift (expected return).
-    sigma : float
-        Annualized volatility (must be >= 0).
-    days : int
-        Simulation horizon in trading days (must be >= 1).
-    num_paths : int
-        Number of Monte Carlo paths to generate (must be >= 1).
-    trading_days_per_year : int, optional
-        Trading days used to annualize time, by default 252.
-    seed : int | None, optional
-        Random seed for reproducibility.
-
-    Raises
-    ------
-    TypeError
-        If any argument has an incorrect type.
-    ValueError
-        If any numerical constraint is violated.
-    """
-
+   
     _SUPPORTED_CONFIDENCE_LEVELS: tuple[float, ...] = (0.95, 0.99)
 
     def __init__(
@@ -118,9 +56,7 @@ class GBMSimulator:
 
         self._paths: Optional[NDArray[np.float64]] = None
 
-    # ------------------------------------------------------------------
-    # Validation
-    # ------------------------------------------------------------------
+
 
     @staticmethod
     def _validate_inputs(
@@ -132,7 +68,7 @@ class GBMSimulator:
         trading_days_per_year: int,
         seed: Optional[int],
     ) -> None:
-        """Enforce strict type and value constraints on constructor args."""
+        
         if not isinstance(s0, (int, float)):
             raise TypeError(
                 f"s0 must be int or float, got {type(s0).__name__}"
@@ -186,25 +122,9 @@ class GBMSimulator:
         if np.isinf(sigma) or np.isnan(sigma):
             raise ValueError("sigma must be finite")
 
-    # ------------------------------------------------------------------
-    # Simulation
-    # ------------------------------------------------------------------
+    
 
     def simulate(self) -> NDArray[np.float64]:
-        """Generate price paths via fully vectorized GBM.
-
-        Returns
-        -------
-        NDArray[np.float64]
-            Array of shape ``(num_paths, days + 1)`` where column 0 is
-            ``S_0`` and each subsequent column is the price at that
-            trading day.
-
-        Notes
-        -----
-        Uses cumulative-sum of log-increments for numerical stability
-        and performance.  No Python-level loops are executed.
-        """
         rng = np.random.default_rng(self._seed)
 
         increments: NDArray[np.float64] = (
@@ -228,24 +148,8 @@ class GBMSimulator:
         self._paths = paths
         return paths
 
-    # ------------------------------------------------------------------
-    # Risk statistics
-    # ------------------------------------------------------------------
 
     def risk_statistics(self) -> RiskStatistics:
-        """Compute terminal-horizon risk metrics.
-
-        Returns
-        -------
-        RiskStatistics
-            Frozen dataclass containing mean, std, VaR, ES, and
-            distribution bounds.
-
-        Raises
-        ------
-        RuntimeError
-            If :meth:`simulate` has not been called yet.
-        """
         if self._paths is None:
             raise RuntimeError(
                 "No simulation data available. Call simulate() first."
@@ -279,24 +183,14 @@ class GBMSimulator:
             paths_below_s0=float(np.mean(terminal < self._s0)),
         )
 
-    # ------------------------------------------------------------------
-    # Convenience helpers
-    # ------------------------------------------------------------------
 
     @property
     def paths(self) -> Optional[NDArray[np.float64]]:
-        """Return cached price paths, or ``None`` before simulation."""
         return self._paths
 
     @property
     def terminal_prices(self) -> NDArray[np.float64]:
-        """Return terminal prices from the most recent simulation.
-
-        Raises
-        ------
-        RuntimeError
-            If :meth:`simulate` has not been called yet.
-        """
+       
         if self._paths is None:
             raise RuntimeError(
                 "No simulation data available. Call simulate() first."
@@ -312,12 +206,9 @@ class GBMSimulator:
         )
 
 
-# ------------------------------------------------------------------
-# Demo driver
-# ------------------------------------------------------------------
 
 def main() -> None:
-    """Run a quick demonstration of the GBM simulator."""
+       
     sim = GBMSimulator(
         s0=100.0,
         mu=0.08,
